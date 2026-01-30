@@ -177,7 +177,7 @@ class RemoteRuntime(AbstractRuntime):
         while retry_count <= num_retries:
             try:
                 async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(force_close=True)) as session:
-                    timeout_value = self._get_timeout() * 10
+                    timeout_value = 1800  # 30 minutes
                     async with session.post(
                         request_url,
                         json=payload.model_dump() if payload else None,
