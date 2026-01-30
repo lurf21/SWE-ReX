@@ -124,9 +124,11 @@ class DockerDeployment(AbstractDeployment):
             cmd = f"{self._config.python_standalone_dir}/python3.11/bin/{REMOTE_EXECUTABLE_NAME} {rex_args}"
         else:
             cmd = f"{REMOTE_EXECUTABLE_NAME} {rex_args} || ({pipx_install} && pipx run {PACKAGE_NAME} {rex_args})"
-        # Use exec_shell from config
+        # Need to wrap with /bin/sh -c to avoid having '&&' interpreted by the parent shell
         return [
-            *self._config.exec_shell,
+            "/bin/sh",
+            # "-l",
+            "-c",
             cmd,
         ]
 
