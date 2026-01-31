@@ -214,18 +214,29 @@ class DockerDeployment(AbstractDeployment):
             f"BASE_IMAGE={self._config.image}",
             "-",
         ]
-        image_id = (
-            subprocess.check_output(
-                build_cmd,
-                input=dockerfile.encode(),
-            )
-            .decode()
-            .strip()
-        )
-        if not image_id.startswith("sha256:"):
-            msg = f"Failed to build image. Image ID is not a SHA256: {image_id}"
-            raise RuntimeError(msg)
-        return image_id
+        last_error: subprocess.CalledProcessError | None = None
+        for attempt in range(1, 6):
+            try:
+                image_id = (
+                    subprocess.check_output(
+                        build_cmd,
+                        input=dockerfile.encode(),
+                    )
+                    .decode()
+                    .strip()
+                )
+                if not image_id.startswith("sha256:"):
+                    msg = f"Failed to build image. Image ID is not a SHA256: {image_id}"
+                    raise RuntimeError(msg)
+                return image_id
+            except subprocess.CalledProcessError as e:
+                last_error = e
+                if attempt == 5:
+                    break
+                self.logger.warning(f"Build attempt {attempt} failed. Retrying...")
+                time.sleep(1)
+        assert last_error is not None
+        raise last_error
 
     async def start(self):
         """Starts the runtime."""
