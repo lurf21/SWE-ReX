@@ -217,6 +217,11 @@ class DockerDeployment(AbstractDeployment):
         last_error: subprocess.CalledProcessError | None = None
         for attempt in range(1, 6):
             try:
+                if attempt > 1:
+                    self.logger.info(f"Retrying build (attempt {attempt}/5)...")
+                    # Add --no-cache on retries (only once)
+                    if attempt == 2 and "--no-cache" not in build_cmd:
+                        build_cmd.insert(2, "--no-cache")
                 image_id = (
                     subprocess.check_output(
                         build_cmd,
